@@ -140,16 +140,23 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# API Keys - Check API_KEYS_LOCAL.md for actual keys
-# Set these as environment variables or replace with your actual keys
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "your-groq-api-key-here")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "your-gemini-api-key-here")
-SERPER_API_KEY = os.getenv("SERPER_API_KEY", "your-serper-api-key-here")
+# API Keys - Will be set from UI or environment variables
+def get_api_keys():
+    """Get API keys from session state, environment variables, or defaults"""
+    groq_key = st.session_state.get('groq_api_key') or os.getenv("GROQ_API_KEY", "")
+    serper_key = st.session_state.get('serper_api_key') or os.getenv("SERPER_API_KEY", "")
+    gemini_key = st.session_state.get('gemini_api_key') or os.getenv("GEMINI_API_KEY", "")
+    
+    return groq_key, serper_key, gemini_key
 
 # Initialize session state
 if 'initialized' not in st.session_state:
     st.session_state.initialized = False
     st.session_state.query_history = []
+    st.session_state.api_keys_configured = False
+    st.session_state.groq_api_key = ""
+    st.session_state.serper_api_key = ""
+    st.session_state.gemini_api_key = ""
     st.session_state.components_loaded = False
     st.session_state.custom_docs_loaded = False
     st.session_state.dynamic_questions = []
@@ -164,6 +171,13 @@ def initialize_base_components():
         from langchain_groq import ChatGroq
         from langchain.schema import Document
         
+        # Get API keys from session state or environment
+        groq_key, serper_key, gemini_key = get_api_keys()
+        
+        if not groq_key:
+            st.error("❌ Groq API key required for LLM functionality")
+            return None, None
+        
         # Initialize LLM
         llm = ChatGroq(
             model='llama-3.1-8b-instant',
@@ -171,7 +185,7 @@ def initialize_base_components():
             max_tokens=500,
             timeout=None,
             max_retries=2,
-            api_key=GROQ_API_KEY
+            api_key=groq_key
         )
         
         # Initialize embeddings
@@ -474,10 +488,26 @@ Decision:"""
 
 def get_web_content_enhanced(query: str) -> dict:
     """Enhanced web content retrieval with detailed source information"""
+    # Get API keys from session state
+    groq_key, serper_key, gemini_key = get_api_keys()
+    
+    if not serper_key:
+        return {
+            "content": "Web search unavailable - Serper API key not configured",
+            "sources": [],
+            "search_metadata": {
+                "search_query": query,
+                "error": "No API key configured",
+                "status": "Failed"
+            },
+            "success": False,
+            "result_count": 0
+        }
+    
     url = 'https://google.serper.dev/search'
     payload = {'q': query, 'num': 5}
     headers = {
-        'X-API-KEY': SERPER_API_KEY,
+        'X-API-KEY': serper_key,
         'Content-Type': 'application/json'
     }
     
@@ -822,6 +852,65 @@ def main():
     
     # Sidebar
     with st.sidebar:
+        # API Keys Configuration Section
+        st.markdown("### 🔑 API Configuration")
+        
+        with st.expander("🔧 Configure API Keys", expanded=not st.session_state.api_keys_configured):
+            st.markdown("Enter your API keys to enable all demo features:")
+            
+            # Groq API Key
+            groq_key = st.text_input(
+                "🤖 Groq API Key", 
+                value=st.session_state.get('groq_api_key', ''),
+                type="password",
+                help="Get your free API key from https://console.groq.com/",
+                placeholder="gsk_..."
+            )
+            
+            # Serper API Key  
+            serper_key = st.text_input(
+                "🔍 Serper API Key",
+                value=st.session_state.get('serper_api_key', ''), 
+                type="password",
+                help="Get your free API key from https://serper.dev/",
+                placeholder="Your Serper API key"
+            )
+            
+            # Gemini API Key (optional)
+            gemini_key = st.text_input(
+                "🧠 Gemini API Key (Optional)",
+                value=st.session_state.get('gemini_api_key', ''),
+                type="password", 
+                help="Get your API key from https://makersuite.google.com/ (optional for basic demo)",
+                placeholder="Your Gemini API key"
+            )
+            
+            # Save API Keys Button
+            if st.button("💾 Save API Keys", type="primary"):
+                if groq_key and serper_key:
+                    st.session_state.groq_api_key = groq_key
+                    st.session_state.serper_api_key = serper_key
+                    st.session_state.gemini_api_key = gemini_key
+                    st.session_state.api_keys_configured = True
+                    st.success("✅ API keys saved successfully!")
+                    st.rerun()
+                else:
+                    st.error("❌ Please enter at least Groq and Serper API keys")
+            
+            # API Key Status
+            if st.session_state.api_keys_configured:
+                st.success("✅ API keys configured")
+            else:
+                st.warning("⚠️ API keys required for full functionality")
+                st.info("💡 The demo will use fallback responses without API keys")
+        
+        # Show current configuration status
+        if st.session_state.api_keys_configured:
+            st.markdown("**🟢 Status:** Ready to use all features")
+        else:
+            st.markdown("**🟡 Status:** Limited functionality (configure API keys above)")
+        
+        st.markdown("---")
         st.markdown("### 🎛️ Knowledge Base Setup")
         
         # PDF Upload Section
@@ -869,7 +958,7 @@ def main():
                     st.rerun()
         
         # Initialize default components if no custom docs
-        if not st.session_state.components_loaded:
+        if not st.session_state.components_loaded and st.session_state.api_keys_configured:
             with st.spinner("Loading default AI components..."):
                 llm, embeddings = initialize_base_components()
                 if llm and embeddings:
@@ -955,6 +1044,14 @@ def main():
             """)
     
     # Main content area
+    if not st.session_state.api_keys_configured:
+        st.warning("⚠️ Please configure your API keys in the sidebar to use the demo")
+        st.info("💡 You can get free API keys from:")
+        st.markdown("- 🤖 **Groq**: https://console.groq.com/ (Required)")
+        st.markdown("- 🔍 **Serper**: https://serper.dev/ (Required)")
+        st.markdown("- 🧠 **Gemini**: https://makersuite.google.com/ (Optional)")
+        return
+    
     if not st.session_state.components_loaded:
         st.info("🔄 Please wait while components are loading...")
         return

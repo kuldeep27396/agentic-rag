@@ -153,12 +153,19 @@ def initialize_ai_components():
         
         st.info("🔄 Initializing AI Components...")
         
+        # Get API keys from session state
+        groq_key = st.session_state.get('groq_api_key', '')
+        
+        if not groq_key:
+            st.error("❌ Groq API key required for LLM functionality")
+            return None, None, None
+        
         # 1. Initialize Large Language Model (Groq - Fast Inference)
         llm = ChatGroq(
             model='llama-3.1-8b-instant',  # Fast, efficient model
             temperature=0,                  # Deterministic responses
             max_tokens=500,                # Response length limit
-            api_key=GROQ_API_KEY
+            api_key=groq_key
         )
         
         # 2. Initialize Embeddings Model (HuggingFace - Semantic Understanding)
@@ -373,10 +380,26 @@ def get_web_content_with_metadata(query: str) -> dict:
     Returns:
         dict: Contains search results, source metadata, and search statistics
     """
+    # Get API key from session state
+    serper_key = st.session_state.get('serper_api_key', '')
+    
+    if not serper_key:
+        return {
+            "content": "Web search unavailable - Serper API key not configured",
+            "sources": [],
+            "search_metadata": {
+                "search_query": query,
+                "error": "No API key configured",
+                "status": "Failed"
+            },
+            "success": False,
+            "result_count": 0
+        }
+    
     url = 'https://google.serper.dev/search'
     payload = {'q': query, 'num': 5}  # Get top 5 results
     headers = {
-        'X-API-KEY': SERPER_API_KEY,
+        'X-API-KEY': serper_key,
         'Content-Type': 'application/json'
     }
     
@@ -987,13 +1010,63 @@ def main():
     if 'components_loaded' not in st.session_state:
         st.session_state.components_loaded = False
         st.session_state.query_history = []
+        st.session_state.api_keys_configured = False
+        st.session_state.groq_api_key = ""
+        st.session_state.serper_api_key = ""
     
     # Sidebar Configuration
     with st.sidebar:
+        # API Keys Configuration Section
+        st.markdown("### 🔑 API Configuration")
+        
+        with st.expander("🔧 Configure API Keys", expanded=not st.session_state.api_keys_configured):
+            st.markdown("Enter your API keys to enable the educational demo:")
+            
+            # Groq API Key
+            groq_key = st.text_input(
+                "🤖 Groq API Key", 
+                value=st.session_state.get('groq_api_key', ''),
+                type="password",
+                help="Required for LLM functionality - Get free key from https://console.groq.com/",
+                placeholder="gsk_..."
+            )
+            
+            # Serper API Key  
+            serper_key = st.text_input(
+                "🔍 Serper API Key",
+                value=st.session_state.get('serper_api_key', ''), 
+                type="password",
+                help="Required for web search - Get free key from https://serper.dev/",
+                placeholder="Your Serper API key"
+            )
+            
+            # Save API Keys Button
+            if st.button("💾 Save API Keys", type="primary"):
+                if groq_key and serper_key:
+                    st.session_state.groq_api_key = groq_key
+                    st.session_state.serper_api_key = serper_key
+                    st.session_state.api_keys_configured = True
+                    st.success("✅ API keys saved! Please refresh to initialize components.")
+                    st.rerun()
+                else:
+                    st.error("❌ Please enter both Groq and Serper API keys")
+            
+            # API Key Status
+            if st.session_state.api_keys_configured:
+                st.success("✅ API keys configured")
+            else:
+                st.warning("⚠️ API keys required for demo")
+        
+        if st.session_state.api_keys_configured:
+            st.markdown("**🟢 Status:** Ready for educational demo")
+        else:
+            st.markdown("**🟡 Status:** Configure API keys above to start")
+        
+        st.markdown("---")
         st.markdown("### 🎛️ Demo Controls")
         
-        # Initialize AI components
-        if not st.session_state.components_loaded:
+        # Initialize AI components (only if API keys are configured)
+        if not st.session_state.components_loaded and st.session_state.api_keys_configured:
             with st.spinner("🔄 Loading AI components..."):
                 llm, embeddings, vector_db = initialize_ai_components()
                 if llm and vector_db and embeddings:
@@ -1005,7 +1078,8 @@ def main():
                     st.error("❌ Failed to load AI components")
                     return
         
-        st.success("✅ AI Components Ready!")
+        if st.session_state.components_loaded:
+            st.success("✅ AI Components Ready!")
         
         # Sample questions for testing
         st.markdown("### 💬 Test Questions")
@@ -1065,6 +1139,15 @@ def main():
             """)
     
     # Main content area
+    if not st.session_state.api_keys_configured:
+        st.warning("⚠️ Please configure your API keys in the sidebar to start the educational demo")
+        st.info("💡 Get your free API keys from:")
+        st.markdown("- 🤖 **Groq**: https://console.groq.com/ (Required for LLM)")
+        st.markdown("- 🔍 **Serper**: https://serper.dev/ (Required for web search)")
+        st.markdown("")
+        st.markdown("📚 **This educational demo shows the complete code walkthrough with detailed comments**")
+        return
+    
     if not st.session_state.components_loaded:
         st.info("🔄 Please wait while AI components are loading...")
         return
