@@ -140,12 +140,25 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# API Keys - Will be set from UI or environment variables
+# API Keys - Will be set from Streamlit secrets or environment variables
 def get_api_keys():
-    """Get API keys from session state, environment variables, or defaults"""
-    groq_key = st.session_state.get('groq_api_key') or os.getenv("GROQ_API_KEY", "")
-    serper_key = st.session_state.get('serper_api_key') or os.getenv("SERPER_API_KEY", "")
-    gemini_key = st.session_state.get('gemini_api_key') or os.getenv("GEMINI_API_KEY", "")
+    """Get API keys from Streamlit secrets or environment variables"""
+    # Try Streamlit secrets first (for Streamlit Cloud deployment)
+    try:
+        groq_key = st.secrets.get("GROQ_API_KEY", "")
+        serper_key = st.secrets.get("SERPER_API_KEY", "")
+        gemini_key = st.secrets.get("GEMINI_API_KEY", "")
+        
+        # If found in secrets, return them
+        if groq_key and serper_key:
+            return groq_key, serper_key, gemini_key
+    except:
+        pass
+    
+    # Fallback to environment variables (for other deployments)
+    groq_key = os.getenv("GROQ_API_KEY", "")
+    serper_key = os.getenv("SERPER_API_KEY", "")
+    gemini_key = os.getenv("GEMINI_API_KEY", "")
     
     return groq_key, serper_key, gemini_key
 
@@ -153,10 +166,6 @@ def get_api_keys():
 if 'initialized' not in st.session_state:
     st.session_state.initialized = False
     st.session_state.query_history = []
-    st.session_state.api_keys_configured = False
-    st.session_state.groq_api_key = ""
-    st.session_state.serper_api_key = ""
-    st.session_state.gemini_api_key = ""
     st.session_state.components_loaded = False
     st.session_state.custom_docs_loaded = False
     st.session_state.dynamic_questions = []
@@ -852,63 +861,19 @@ def main():
     
     # Sidebar
     with st.sidebar:
-        # API Keys Configuration Section
+        # API Keys Status Section
         st.markdown("### 🔑 API Configuration")
         
-        with st.expander("🔧 Configure API Keys", expanded=not st.session_state.api_keys_configured):
-            st.markdown("Enter your API keys to enable all demo features:")
-            
-            # Groq API Key
-            groq_key = st.text_input(
-                "🤖 Groq API Key", 
-                value=st.session_state.get('groq_api_key', ''),
-                type="password",
-                help="Get your free API key from https://console.groq.com/",
-                placeholder="gsk_..."
-            )
-            
-            # Serper API Key  
-            serper_key = st.text_input(
-                "🔍 Serper API Key",
-                value=st.session_state.get('serper_api_key', ''), 
-                type="password",
-                help="Get your free API key from https://serper.dev/",
-                placeholder="Your Serper API key"
-            )
-            
-            # Gemini API Key (optional)
-            gemini_key = st.text_input(
-                "🧠 Gemini API Key (Optional)",
-                value=st.session_state.get('gemini_api_key', ''),
-                type="password", 
-                help="Get your API key from https://makersuite.google.com/ (optional for basic demo)",
-                placeholder="Your Gemini API key"
-            )
-            
-            # Save API Keys Button
-            if st.button("💾 Save API Keys", type="primary"):
-                if groq_key and serper_key:
-                    st.session_state.groq_api_key = groq_key
-                    st.session_state.serper_api_key = serper_key
-                    st.session_state.gemini_api_key = gemini_key
-                    st.session_state.api_keys_configured = True
-                    st.success("✅ API keys saved successfully!")
-                    st.rerun()
-                else:
-                    st.error("❌ Please enter at least Groq and Serper API keys")
-            
-            # API Key Status
-            if st.session_state.api_keys_configured:
-                st.success("✅ API keys configured")
-            else:
-                st.warning("⚠️ API keys required for full functionality")
-                st.info("💡 The demo will use fallback responses without API keys")
+        # Check API key availability from environment
+        groq_key, serper_key, gemini_key = get_api_keys()
         
-        # Show current configuration status
-        if st.session_state.api_keys_configured:
+        if groq_key and serper_key:
+            st.success("✅ API keys configured from environment")
             st.markdown("**🟢 Status:** Ready to use all features")
         else:
-            st.markdown("**🟡 Status:** Limited functionality (configure API keys above)")
+            st.error("❌ API keys not found in environment variables")
+            st.markdown("**🔴 Status:** Please configure environment variables")
+            st.info("💡 Required: GROQ_API_KEY, SERPER_API_KEY, GEMINI_API_KEY")
         
         st.markdown("---")
         st.markdown("### 🎛️ Knowledge Base Setup")
