@@ -27,7 +27,7 @@ os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
 # Page configuration
 st.set_page_config(
-    page_title="Enhanced Agentic RAG Demo",
+    page_title="Agentic RAG VS rag",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -923,15 +923,18 @@ def main():
                     st.rerun()
         
         # Initialize default components if no custom docs
-        if not st.session_state.components_loaded and st.session_state.api_keys_configured:
-            with st.spinner("Loading default AI components..."):
-                llm, embeddings = initialize_base_components()
-                if llm and embeddings:
-                    st.session_state.llm = llm
-                    st.session_state.embeddings = embeddings
-                    st.session_state.vector_db = create_default_knowledge_base(embeddings)
-                    st.session_state.components_loaded = True
-                    st.session_state.current_knowledge_base = "default"
+        if not st.session_state.components_loaded:
+            # Check if API keys are available
+            groq_key, serper_key, gemini_key = get_api_keys()
+            if groq_key and serper_key:
+                with st.spinner("Loading default AI components..."):
+                    llm, embeddings = initialize_base_components()
+                    if llm and embeddings:
+                        st.session_state.llm = llm
+                        st.session_state.embeddings = embeddings
+                        st.session_state.vector_db = create_default_knowledge_base(embeddings)
+                        st.session_state.components_loaded = True
+                        st.session_state.current_knowledge_base = "default"
         
         # Knowledge Base Status
         st.markdown("#### 📊 Current Knowledge Base")
@@ -1008,13 +1011,15 @@ def main():
             - ✅ Quality assessment & optimization
             """)
     
-    # Main content area
-    if not st.session_state.api_keys_configured:
-        st.warning("⚠️ Please configure your API keys in the sidebar to use the demo")
-        st.info("💡 You can get free API keys from:")
-        st.markdown("- 🤖 **Groq**: https://console.groq.com/ (Required)")
-        st.markdown("- 🔍 **Serper**: https://serper.dev/ (Required)")
-        st.markdown("- 🧠 **Gemini**: https://makersuite.google.com/ (Optional)")
+    # Main content area - Check if API keys are available
+    groq_key, serper_key, gemini_key = get_api_keys()
+    if not (groq_key and serper_key):
+        st.warning("⚠️ API keys not found in environment variables")
+        st.info("💡 Please configure the following environment variables:")
+        st.markdown("- 🤖 **GROQ_API_KEY**: Get from https://console.groq.com/ (Required)")
+        st.markdown("- 🔍 **SERPER_API_KEY**: Get from https://serper.dev/ (Required)")
+        st.markdown("- 🧠 **GEMINI_API_KEY**: Get from https://makersuite.google.com/ (Optional)")
+        st.info("📖 See DEPLOYMENT_GUIDE.md for detailed setup instructions")
         return
     
     if not st.session_state.components_loaded:
