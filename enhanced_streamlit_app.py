@@ -27,7 +27,7 @@ os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
 # Page configuration
 st.set_page_config(
-    page_title="Agentic RAG VS rag",
+    page_title="Agentic RAG vs Traditional RAG , Try yourself",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded"
