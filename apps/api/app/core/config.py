@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     openrouter_api_key: str = ""
     openrouter_chat_model: str = "google/gemma-4-31b-it:free"
     openrouter_embedding_model: str = "openai/text-embedding-3-small"
+    embedding_dimensions: int = 1536
+
+    zilliz_uri: str = ""
+    zilliz_token: str = ""
 
     blob_read_write_token: str = ""
     qstash_token: str = ""

@@ -84,6 +84,7 @@ export async function streamChat(input: {
   sessionToken: string;
   content: string;
   onDelta: (value: string) => void;
+  onSuggestions: (items: string[]) => void;
 }) {
   const response = await fetch(`${apiBaseUrl()}/v1/chat/sessions/${input.sessionId}/messages/stream`, {
     method: "POST",
@@ -112,6 +113,7 @@ export async function streamChat(input: {
       const payload = JSON.parse(dataLine.slice(6));
       if (payload.type === "delta") input.onDelta(payload.content);
       if (payload.role === "assistant") finalMessage = payload as ChatMessage;
+      if (payload.type === "suggestions") input.onSuggestions(payload.items);
     }
   }
   return finalMessage;

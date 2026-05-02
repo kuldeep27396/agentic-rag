@@ -116,12 +116,14 @@ async def stream_message(session_id: str, payload: ChatMessageRequest, request: 
 
     await repository.add_message(session_id, "user", payload.content)
     agent = PdfRagAgent(repository, vector_store, llm_client)
-    answer, citations = await agent.run(document.id, document.filename, payload.content, hybrid=payload.hybrid)
+    answer, citations, suggestions = await agent.run(document.id, document.filename, payload.content, hybrid=payload.hybrid)
     assistant_message = await repository.add_message(session_id, "assistant", answer, citations)
 
     async def events():
         yield f"data: {json.dumps({'type': 'delta', 'content': answer})}\n\n"
         yield f"data: {assistant_message.model_dump_json()}\n\n"
+        if suggestions:
+            yield f"data: {json.dumps({'type': 'suggestions', 'items': suggestions})}\n\n"
         yield "event: done\ndata: {}\n\n"
 
     return StreamingResponse(events(), media_type="text/event-stream")
@@ -137,4 +139,5 @@ async def delete_document(document_id: str, session_token: str) -> DocumentRespo
         raise HTTPException(status_code=403, detail=str(exc)) from exc
     await repository.update_document_status(document.id, DocumentStatus.deleted)
     await repository.delete_document_state(document.id)
+    await vector_store.delete_collection(document.id)
     return to_document_response(document)
