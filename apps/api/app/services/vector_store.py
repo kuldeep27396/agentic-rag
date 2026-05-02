@@ -73,10 +73,33 @@ def _ensure_shared_collection(client: MilvusClient, dimensions: int) -> None:
 
 
 class VectorStore:
+    MAX_DOCUMENTS = 5
+
+    async def _cleanup_if_needed(self, current_document_id: str) -> None:
+        client = _get_milvus_client()
+        if not client or not client.has_collection(_SHARED_COLLECTION):
+            return
+        stats = client.get_collection_stats(_SHARED_COLLECTION)
+        if stats.row_count <= self.MAX_DOCUMENTS:
+            return
+        existing = client.query(
+            collection_name=_SHARED_COLLECTION,
+            filter="document_id != '{}'".format(current_document_id.replace('"', '\\"')),
+            output_fields=["document_id"],
+            limit=1,
+        )
+        if existing and existing[0]:
+            orphan_ids = {hit["entity"]["document_id"] for hit in existing[0]}
+            if orphan_ids:
+                for doc_id in orphan_ids:
+                    client.delete(collection_name=_SHARED_COLLECTION, filter=build_document_filter(doc_id))
+
     async def upsert_chunks(self, chunks: List[ChunkRecord]) -> None:
         if not chunks:
             return
         settings = get_settings()
+        await self._cleanup_if_needed(chunks[0].document_id)
+        texts = [chunk.text for chunk in chunks]
         dimensions = settings.embedding_dimensions
 
         client = _get_milvus_client()
