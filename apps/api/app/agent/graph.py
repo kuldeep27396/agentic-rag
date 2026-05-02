@@ -1,3 +1,4 @@
+from __future__ import annotations
 from app.core.config import get_settings
 from app.db.repository import SessionRepository
 from app.schemas.models import Citation

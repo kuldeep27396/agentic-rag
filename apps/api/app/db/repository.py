@@ -1,3 +1,4 @@
+from __future__ import annotations
 from uuid import uuid4
 
 from app.core.config import get_settings
