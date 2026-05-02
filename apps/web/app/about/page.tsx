@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import ServiceLogo from "@/components/ServiceLogo";
 
 export const metadata: Metadata = {
   title: "Agentic PDF RAG — Design & Architecture",
@@ -17,32 +18,6 @@ function SectionBadge({ children, color = "primary" }: { children: React.ReactNo
   return (
     <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${colors[color] ?? colors.primary}`}>
       {children}
-    </span>
-  );
-}
-
-function ServiceLogo({ name, color }: { name: string; color: string }) {
-  const bg: Record<string, string> = {
-    vercel: "bg-black text-white dark:bg-white dark:text-black",
-    nextjs: "bg-black text-white dark:bg-white dark:text-black",
-    react: "bg-sky-500 text-white",
-    fastapi: "bg-emerald-600 text-white",
-    python: "bg-yellow-500 text-black",
-    redis: "bg-red-600 text-white",
-    upstash: "bg-red-600 text-white",
-    milvus: "bg-blue-700 text-white",
-    openrouter: "bg-emerald-500 text-white",
-    tailwind: "bg-sky-500 text-white",
-    typescript: "bg-blue-600 text-white",
-    pydantic: "bg-rose-600 text-white",
-    blob: "bg-blue-600 text-white",
-    qstash: "bg-orange-500 text-white",
-    pypdf: "bg-orange-600 text-white",
-    httpx: "bg-teal-600 text-white",
-  };
-  return (
-    <span className={`inline-flex items-center justify-center rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${bg[color] ?? "bg-muted text-muted-foreground"}`}>
-      {name}
     </span>
   );
 }
@@ -141,10 +116,10 @@ export default function AboutPage() {
                     <span className="inline-flex items-center gap-1.5 rounded-lg bg-sky-500/20 px-3 py-1 text-xs font-bold text-sky-600 dark:text-sky-400">
                       🌐 Browser Client
                     </span>
-                    <ServiceLogo name="Next.js" color="nextjs" />
-                    <ServiceLogo name="React" color="react" />
-                    <ServiceLogo name="TS" color="typescript" />
-                    <ServiceLogo name="Tailwind" color="tailwind" />
+                    <ServiceLogo name="nextjs" />
+                    <ServiceLogo name="react" />
+                    <ServiceLogo name="TS" />
+                    <ServiceLogo name="tailwind" />
                   </div>
                   <div className="grid gap-2 sm:grid-cols-3 text-xs">
                     <div className="rounded-lg bg-white/50 dark:bg-black/20 p-2.5 text-center">
@@ -176,10 +151,10 @@ export default function AboutPage() {
                     <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
                       ⚡ API Server
                     </span>
-                    <ServiceLogo name="FastAPI" color="fastapi" />
-                    <ServiceLogo name="Python" color="python" />
-                    <ServiceLogo name="Pydantic" color="pydantic" />
-                    <ServiceLogo name="httpx" color="httpx" />
+                    <ServiceLogo name="fastapi" />
+                    <ServiceLogo name="python" />
+                    <ServiceLogo name="pydantic" />
+                    <ServiceLogo name="httpx" />
                   </div>
                   <div className="grid gap-2 sm:grid-cols-4 text-xs">
                     <div className="rounded-lg bg-white/50 dark:bg-black/20 p-2.5 text-center border-l-4 border-emerald-500">
@@ -211,17 +186,17 @@ export default function AboutPage() {
                 {/* Infrastructure Layer */}
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="rounded-xl border-2 border-red-500/20 bg-gradient-to-br from-red-500/5 to-red-500/0 p-4 text-center">
-                    <div className="mb-2"><ServiceLogo name="Upstash Redis" color="upstash" /></div>
+                    <div className="mb-2"><ServiceLogo name="upstash" /></div>
                     <p className="text-xs font-semibold">State Store</p>
                     <p className="text-[10px] text-muted-foreground">Documents, sessions, messages, rate limits</p>
                   </div>
                   <div className="rounded-xl border-2 border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-blue-500/0 p-4 text-center">
-                    <div className="mb-2"><ServiceLogo name="Zilliz" color="milvus" /></div>
+                    <div className="mb-2"><ServiceLogo name="milvus" /></div>
                     <p className="text-xs font-semibold">Vector Database</p>
                     <p className="text-[10px] text-muted-foreground">Shared collection with document filtering</p>
                   </div>
                   <div className="rounded-xl border-2 border-orange-500/20 bg-gradient-to-br from-orange-500/5 to-orange-500/0 p-4 text-center">
-                    <div className="mb-2"><ServiceLogo name="OpenRouter" color="openrouter" /></div>
+                    <div className="mb-2"><ServiceLogo name="openrouter" /></div>
                     <p className="text-xs font-semibold">LLM Gateway</p>
                     <p className="text-[10px] text-muted-foreground">Multi-model fallback + embeddings</p>
                   </div>
@@ -230,19 +205,19 @@ export default function AboutPage() {
                 {/* Supporting services */}
                 <div className="grid gap-3 sm:grid-cols-4">
                   <div className="rounded-lg border bg-card p-3 text-center">
-                    <ServiceLogo name="Blob" color="blob" />
+                    <ServiceLogo name="blob" />
                     <p className="text-[10px] mt-1.5 text-muted-foreground">PDF Storage</p>
                   </div>
                   <div className="rounded-lg border bg-card p-3 text-center">
-                    <ServiceLogo name="QStash" color="qstash" />
+                    <ServiceLogo name="qstash" />
                     <p className="text-[10px] mt-1.5 text-muted-foreground">Job Queue</p>
                   </div>
                   <div className="rounded-lg border bg-card p-3 text-center">
-                    <ServiceLogo name="pypdf" color="pypdf" />
+                    <ServiceLogo name="pypdf" />
                     <p className="text-[10px] mt-1.5 text-muted-foreground">PDF Parser</p>
                   </div>
                   <div className="rounded-lg border bg-card p-3 text-center">
-                    <ServiceLogo name="Vercel" color="vercel" />
+                    <ServiceLogo name="vercel" />
                     <p className="text-[10px] mt-1.5 text-muted-foreground">Deployment</p>
                   </div>
                 </div>
@@ -347,16 +322,16 @@ export default function AboutPage() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               {[
-                { title: "Frontend", gradient: "from-sky-500/10 to-blue-500/0", border: "border-sky-500/20", badges: [["Next.js", "nextjs"], ["React", "react"], ["TS", "typescript"], ["Tailwind", "tailwind"]] },
-                { title: "Backend", gradient: "from-emerald-500/10 to-emerald-500/0", border: "border-emerald-500/20", badges: [["FastAPI", "fastapi"], ["Python", "python"], ["Pydantic", "pydantic"], ["httpx", "httpx"]] },
-                { title: "Infrastructure", gradient: "from-purple-500/10 to-purple-500/0", border: "border-purple-500/20", badges: [["Vercel", "vercel"], ["Redis", "upstash"], ["QStash", "qstash"], ["Blob", "blob"]] },
-                { title: "AI & Search", gradient: "from-amber-500/10 to-amber-500/0", border: "border-amber-500/20", badges: [["OpenRouter", "openrouter"], ["Zilliz", "milvus"], ["pypdf", "pypdf"], ["Gemma 4", "fastapi"]] },
+                { title: "Frontend", gradient: "from-sky-500/10 to-blue-500/0", border: "border-sky-500/20", badges: [["nextjs"], ["react"], ["TS"], ["tailwind"]] },
+                { title: "Backend", gradient: "from-emerald-500/10 to-emerald-500/0", border: "border-emerald-500/20", badges: [["fastapi"], ["python"], ["pydantic"], ["httpx"]] },
+                { title: "Infrastructure", gradient: "from-purple-500/10 to-purple-500/0", border: "border-purple-500/20", badges: [["vercel"], ["upstash"], ["qstash"], ["blob"]] },
+                { title: "AI & Search", gradient: "from-amber-500/10 to-amber-500/0", border: "border-amber-500/20", badges: [["openrouter"], ["milvus"], ["pypdf"], ["gemini"]] },
               ].map(({ title, gradient, border, badges }) => (
                 <div key={title} className={`rounded-2xl border ${border} bg-gradient-to-br ${gradient} p-6`}>
                   <h3 className="mb-4 text-sm font-bold">{title}</h3>
                   <div className="flex flex-wrap gap-2">
-                    {badges.map(([name, color]) => (
-                      <ServiceLogo key={name} name={name} color={color} />
+                    {badges.map(([name]) => (
+                      <ServiceLogo key={name} name={name} />
                     ))}
                   </div>
                 </div>
@@ -372,7 +347,7 @@ export default function AboutPage() {
             </div>
             <div className="rounded-2xl border bg-card p-6">
               <div className="flex items-center gap-3 mb-6">
-                <ServiceLogo name="Upstash Redis" color="upstash" />
+                <ServiceLogo name="upstash" />
                 <span className="text-xs text-muted-foreground">All data expires after 30 days. No persistent database needed.</span>
               </div>
               <div className="space-y-2">
@@ -549,7 +524,7 @@ export default function AboutPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-2xl border border-sky-500/20 bg-gradient-to-br from-sky-500/5 to-transparent p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <ServiceLogo name="Next.js" color="nextjs" />
+                  <ServiceLogo name="nextjs" />
                   <h3 className="text-sm font-semibold">Web Project</h3>
                 </div>
                 <ul className="space-y-1.5 text-xs text-muted-foreground">
@@ -562,7 +537,7 @@ export default function AboutPage() {
               </div>
               <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <ServiceLogo name="FastAPI" color="fastapi" />
+                  <ServiceLogo name="fastapi" />
                   <h3 className="text-sm font-semibold">API Project</h3>
                 </div>
                 <ul className="space-y-1.5 text-xs text-muted-foreground">
@@ -586,11 +561,11 @@ export default function AboutPage() {
 
         {/* Footer */}
         <footer className="mt-24 flex flex-wrap items-center justify-center gap-3 border-t pt-8">
-          <ServiceLogo name="Next.js" color="nextjs" />
-          <ServiceLogo name="FastAPI" color="fastapi" />
-          <ServiceLogo name="Upstash Redis" color="upstash" />
-          <ServiceLogo name="Zilliz" color="milvus" />
-          <ServiceLogo name="OpenRouter" color="openrouter" />
+          <ServiceLogo name="nextjs" />
+          <ServiceLogo name="fastapi" />
+          <ServiceLogo name="upstash" />
+          <ServiceLogo name="milvus" />
+          <ServiceLogo name="openrouter" />
           <span className="text-xs text-muted-foreground">Built with ❤️</span>
         </footer>
       </div>
