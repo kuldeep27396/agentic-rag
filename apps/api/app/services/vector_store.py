@@ -1,6 +1,6 @@
-from __future__ import annotations
 import hashlib
 import math
+from typing import List, Optional
 
 from app.core.config import get_settings
 from app.schemas.state import ChunkRecord, SearchHit, StoredVector
@@ -16,7 +16,7 @@ def build_document_filter(document_id: str) -> str:
     return f'document_id == "{escaped}"'
 
 
-def local_embedding(text: str, dimensions: int = 256) -> list[float]:
+def local_embedding(text: str, dimensions: int = 256) -> List[float]:
     vector = [0.0] * dimensions
     for word in text.lower().split():
         digest = hashlib.sha256(word.encode()).digest()
@@ -26,12 +26,12 @@ def local_embedding(text: str, dimensions: int = 256) -> list[float]:
     return [value / norm for value in vector]
 
 
-def cosine(left: list[float], right: list[float]) -> float:
+def cosine(left: List[float], right: List[float]) -> float:
     return sum(a * b for a, b in zip(left, right))
 
 
 class VectorStore:
-    async def upsert_chunks(self, chunks: list[ChunkRecord]) -> None:
+    async def upsert_chunks(self, chunks: List[ChunkRecord]) -> None:
         if not chunks:
             return
         vectors = [
@@ -50,7 +50,7 @@ class VectorStore:
             ttl,
         )
 
-    async def search(self, document_id: str, query: str, top_k: int | None = None) -> list[SearchHit]:
+    async def search(self, document_id: str, query: str, top_k: Optional[int] = None) -> List[SearchHit]:
         settings = get_settings()
         query_vector = local_embedding(query)
         limit = top_k or settings.retrieval_child_top_k

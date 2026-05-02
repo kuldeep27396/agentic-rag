@@ -1,5 +1,5 @@
-from __future__ import annotations
 from datetime import datetime
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
@@ -17,7 +17,7 @@ class ChunkRecord(BaseModel):
     text: str = Field(min_length=1)
     text_hash: str
     token_count: int = Field(gt=0)
-    vector_id: str | None = None
+    vector_id: Optional[str] = None
 
 
 class DocumentRecord(BaseModel):
@@ -30,10 +30,10 @@ class DocumentRecord(BaseModel):
     status: DocumentStatus
     session_token_hash: str
     expires_at: datetime
-    ingestion_job_id: str | None = None
-    page_count: int | None = Field(default=None, ge=0)
-    chunk_count: int | None = Field(default=None, ge=0)
-    error: str | None = None
+    ingestion_job_id: Optional[str] = None
+    page_count: Optional[int] = Field(default=None, ge=0)
+    chunk_count: Optional[int] = Field(default=None, ge=0)
+    error: Optional[str] = None
 
 
 class ChatSessionRecord(BaseModel):
@@ -51,7 +51,7 @@ class StoredVector(BaseModel):
     chunk_id: str
     document_id: str
     parent_id: str
-    embedding: list[float]
+    embedding: List[float]
 
 
 class SearchHit(BaseModel):
@@ -60,4 +60,3 @@ class SearchHit(BaseModel):
     chunk_id: str
     parent_id: str
     score: float
-

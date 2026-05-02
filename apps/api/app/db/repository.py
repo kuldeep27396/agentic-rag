@@ -1,5 +1,5 @@
-from __future__ import annotations
 from uuid import uuid4
+from typing import Dict, List, Optional
 
 from app.core.config import get_settings
 from app.core.security import expires_in_days, hash_session_token, utcnow, verify_session_token
@@ -51,7 +51,7 @@ class SessionRepository:
         await redis_state.set_json(_job_key(job_id), {"document_id": document_id}, ttl)
         return record
 
-    async def get_document(self, document_id: str) -> DocumentRecord | None:
+    async def get_document(self, document_id: str) -> Optional[DocumentRecord]:
         data = await redis_state.get_json(_document_key(document_id))
         return DocumentRecord.model_validate(data) if data else None
 
@@ -65,7 +65,7 @@ class SessionRepository:
             raise PermissionError("Document has expired")
         return document
 
-    async def get_document_for_job(self, job_id: str) -> DocumentRecord | None:
+    async def get_document_for_job(self, job_id: str) -> Optional[DocumentRecord]:
         job = await redis_state.get_json(_job_key(job_id))
         return await self.get_document(job["document_id"]) if job else None
 
@@ -74,9 +74,9 @@ class SessionRepository:
         document_id: str,
         status: DocumentStatus,
         *,
-        page_count: int | None = None,
-        chunk_count: int | None = None,
-        error: str | None = None,
+        page_count: Optional[int] = None,
+        chunk_count: Optional[int] = None,
+        error: Optional[str] = None,
     ) -> DocumentRecord:
         document = await self.get_document(document_id)
         if not document:
@@ -92,7 +92,7 @@ class SessionRepository:
         await redis_state.set_json(_document_key(document_id), updated.model_dump(mode="json"), _ttl_seconds())
         return updated
 
-    async def add_chunks(self, chunks: list[ChunkRecord]) -> None:
+    async def add_chunks(self, chunks: List[ChunkRecord]) -> None:
         if not chunks:
             return
         await redis_state.set_json(
@@ -101,7 +101,7 @@ class SessionRepository:
             _ttl_seconds(),
         )
 
-    async def get_parent_chunks(self, document_id: str, parent_ids: list[str]) -> list[ChunkRecord]:
+    async def get_parent_chunks(self, document_id: str, parent_ids: List[str]) -> List[ChunkRecord]:
         data = await redis_state.get_json(_chunks_key(document_id)) or []
         wanted = set(parent_ids)
         return [ChunkRecord.model_validate(chunk) for chunk in data if chunk["parent_id"] in wanted]
@@ -134,8 +134,8 @@ class SessionRepository:
         session_id: str,
         role: str,
         content: str,
-        citations: list[Citation] | None = None,
-        metadata: dict | None = None,
+        citations: Optional[List[Citation]] = None,
+        metadata: Optional[Dict] = None,
     ) -> ChatMessage:
         message = ChatMessage(
             id=str(uuid4()),
@@ -155,7 +155,7 @@ class SessionRepository:
         )
         return message
 
-    async def list_messages(self, session_id: str) -> list[ChatMessage]:
+    async def list_messages(self, session_id: str) -> List[ChatMessage]:
         data = await redis_state.get_json(_messages_key(session_id)) or []
         return [ChatMessage.model_validate(item) for item in data]
 

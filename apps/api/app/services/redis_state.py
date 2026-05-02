@@ -1,7 +1,6 @@
-from __future__ import annotations
 import json
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
 
@@ -10,9 +9,9 @@ from app.core.config import get_settings
 
 class RedisState:
     def __init__(self) -> None:
-        self._memory: dict[str, tuple[Any, float | None]] = {}
+        self._memory: Dict[str, Tuple[Any, Optional[float]]] = {}
 
-    def _memory_get(self, key: str) -> Any | None:
+    def _memory_get(self, key: str) -> Any:
         item = self._memory.get(key)
         if not item:
             return None
@@ -22,7 +21,7 @@ class RedisState:
             return None
         return value
 
-    async def get_json(self, key: str) -> Any | None:
+    async def get_json(self, key: str) -> Any:
         settings = get_settings()
         if not settings.upstash_redis_rest_url or not settings.upstash_redis_rest_token:
             return self._memory_get(key)
@@ -50,7 +49,7 @@ class RedisState:
             return
         await self.pipeline([["DEL", *keys]])
 
-    async def pipeline(self, commands: list[list[Any]]) -> list[dict[str, Any]]:
+    async def pipeline(self, commands: List[List[Any]]) -> List[Dict[str, Any]]:
         settings = get_settings()
         async with httpx.AsyncClient(timeout=10) as client:
             response = await client.post(
@@ -63,4 +62,3 @@ class RedisState:
 
 
 redis_state = RedisState()
-

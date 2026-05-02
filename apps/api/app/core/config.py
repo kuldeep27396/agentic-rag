@@ -1,6 +1,5 @@
-from __future__ import annotations
 from functools import lru_cache
-from typing import Literal
+from typing import List, Literal
 
 from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -36,7 +35,7 @@ class Settings(BaseSettings):
 
     @computed_field
     @property
-    def missing_production_env(self) -> list[str]:
+    def missing_production_env(self) -> List[str]:
         required = [
             "openrouter_api_key",
             "blob_read_write_token",

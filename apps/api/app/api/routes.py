@@ -1,5 +1,5 @@
-from __future__ import annotations
 import json
+from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
@@ -92,8 +92,8 @@ async def create_chat_session(payload: ChatSessionCreateRequest) -> ChatSessionR
     return ChatSessionResponse(id=session.id, document_id=session.document_id, expires_at=session.expires_at)
 
 
-@router.get("/v1/chat/sessions/{session_id}/messages", response_model=list[ChatMessage])
-async def list_messages(session_id: str, session_token: str) -> list[ChatMessage]:
+@router.get("/v1/chat/sessions/{session_id}/messages", response_model=List[ChatMessage])
+async def list_messages(session_id: str, session_token: str) -> List[ChatMessage]:
     try:
         await repository.require_chat_session(session_id, session_token)
     except KeyError as exc:
@@ -105,7 +105,6 @@ async def list_messages(session_id: str, session_token: str) -> list[ChatMessage
 
 @router.post("/v1/chat/sessions/{session_id}/messages/stream")
 async def stream_message(session_id: str, payload: ChatMessageRequest, request: Request) -> StreamingResponse:
-    # Anonymous usage is intentionally capped; OpenRouter free models have low limits.
     await rate_limiter.check(request, limit=20)
     try:
         session = await repository.require_chat_session(session_id, payload.session_token)

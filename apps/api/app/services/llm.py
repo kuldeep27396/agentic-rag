@@ -1,4 +1,5 @@
-from __future__ import annotations
+from typing import List
+
 import httpx
 
 from app.core.config import get_settings
@@ -6,7 +7,7 @@ from app.schemas.models import Citation
 
 
 class OpenRouterClient:
-    async def answer(self, question: str, contexts: list[str], citations: list[Citation], *, use_web: bool = False) -> str:
+    async def answer(self, question: str, contexts: List[str], citations: List[Citation], *, use_web: bool = False) -> str:
         settings = get_settings()
         if not settings.openrouter_api_key:
             joined = "\n\n".join(contexts[:2]).strip()

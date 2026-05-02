@@ -1,4 +1,5 @@
-from __future__ import annotations
+from typing import Dict, List, Set, Tuple
+
 from app.core.config import get_settings
 from app.db.repository import SessionRepository
 from app.schemas.models import Citation
@@ -12,20 +13,20 @@ class PdfRagAgent:
         self.vector_store = vector_store
         self.llm = llm
 
-    async def run(self, document_id: str, filename: str, question: str, *, hybrid: bool = True) -> tuple[str, list[Citation]]:
+    async def run(self, document_id: str, filename: str, question: str, *, hybrid: bool = True) -> Tuple[str, List[Citation]]:
         settings = get_settings()
         hits = await self.vector_store.search(document_id, question, settings.retrieval_child_top_k)
-        parent_ids: list[str] = []
-        scores_by_parent: dict[str, float] = {}
+        parent_ids: List[str] = []
+        scores_by_parent: Dict[str, float] = {}
         for hit in hits:
             if hit.parent_id not in parent_ids:
                 parent_ids.append(hit.parent_id)
                 scores_by_parent[hit.parent_id] = hit.score
         parent_ids = parent_ids[: settings.retrieval_parent_top_k]
         parents = await self.repository.get_parent_chunks(document_id, parent_ids)
-        contexts: list[str] = []
-        citations: list[Citation] = []
-        seen_parent_ids: set[str] = set()
+        contexts: List[str] = []
+        citations: List[Citation] = []
+        seen_parent_ids: Set[str] = set()
         for chunk in parents:
             if chunk.parent_id in seen_parent_ids:
                 continue
@@ -44,7 +45,7 @@ class PdfRagAgent:
         answer = await self.llm.answer(question, contexts, citations, use_web=use_web)
         return answer, citations
 
-    def _needs_web(self, question: str, citations: list[Citation]) -> bool:
+    def _needs_web(self, question: str, citations: List[Citation]) -> bool:
         if not citations:
             return True
         terms = ("current", "latest", "today", "recent", "news", "web", "internet")

@@ -1,5 +1,5 @@
-from __future__ import annotations
 from collections import defaultdict
+from typing import Dict
 
 import httpx
 from fastapi import HTTPException, Request
@@ -9,7 +9,7 @@ from app.core.config import get_settings
 
 class RateLimiter:
     def __init__(self) -> None:
-        self._counts: dict[str, int] = defaultdict(int)
+        self._counts: Dict[str, int] = defaultdict(int)
 
     async def check(self, request: Request, *, limit: int = 30, window_seconds: int = 60) -> None:
         settings = get_settings()
@@ -35,4 +35,3 @@ class RateLimiter:
 
 
 rate_limiter = RateLimiter()
-

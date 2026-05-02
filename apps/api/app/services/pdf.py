@@ -1,6 +1,6 @@
-from __future__ import annotations
 import hashlib
 from io import BytesIO
+from typing import List, Tuple
 from uuid import uuid4
 
 from pypdf import PdfReader
@@ -21,7 +21,7 @@ def validate_pdf_upload(filename: str, content_type: str, size_bytes: int) -> No
         raise PdfValidationError("Only PDF files are supported")
 
 
-def extract_pdf_pages(data: bytes) -> list[tuple[int, str]]:
+def extract_pdf_pages(data: bytes) -> List[Tuple[int, str]]:
     reader = PdfReader(BytesIO(data))
     if reader.is_encrypted:
         raise PdfValidationError("Encrypted PDFs are not supported")
@@ -36,8 +36,8 @@ def estimate_tokens(text: str) -> int:
     return max(1, len(text.split()))
 
 
-def _window_words(words: list[str], size: int, overlap: int) -> list[list[str]]:
-    windows: list[list[str]] = []
+def _window_words(words: List[str], size: int, overlap: int) -> List[List[str]]:
+    windows: List[List[str]] = []
     start = 0
     step = max(1, size - overlap)
     while start < len(words):
@@ -48,14 +48,14 @@ def _window_words(words: list[str], size: int, overlap: int) -> list[list[str]]:
     return windows
 
 
-def chunk_pages(document_id: str, pages: list[tuple[int, str]]) -> list[ChunkRecord]:
+def chunk_pages(document_id: str, pages: List[Tuple[int, str]]) -> List[ChunkRecord]:
     settings = get_settings()
-    chunks: list[ChunkRecord] = []
-    current_words: list[str] = []
+    chunks: List[ChunkRecord] = []
+    current_words: List[str] = []
     page_start = pages[0][0]
     page_end = pages[0][0]
 
-    def flush_parent(words: list[str], start_page: int, end_page: int) -> None:
+    def flush_parent(words: List[str], start_page: int, end_page: int) -> None:
         if not words:
             return
         parent_id = str(uuid4())
