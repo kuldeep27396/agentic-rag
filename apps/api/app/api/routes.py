@@ -21,10 +21,13 @@ from app.services.llm import llm_client
 from app.services.pdf import PdfValidationError, chunk_pages, extract_pdf_pages, validate_pdf_upload
 from app.services.qstash import verify_qstash_request
 from app.services.rate_limit import rate_limiter
+from app.services.redis_state import redis_state
 from app.services.storage import storage
 from app.services.vector_store import vector_store
 
 router = APIRouter()
+
+MAX_DOCUMENTS = 5
 
 
 @router.get("/health")
@@ -141,3 +144,33 @@ async def delete_document(document_id: str, session_token: str) -> DocumentRespo
     await repository.delete_document_state(document.id)
     await vector_store.delete_collection(document.id)
     return to_document_response(document)
+
+
+@router.post("/v1/cron/cleanup", dependencies=[Depends(verify_qstash_request)])
+async def cleanup_old_documents() -> dict:
+    settings = get_settings()
+    doc_keys = await redis_state.keys("document:*")
+    if len(doc_keys) <= MAX_DOCUMENTS:
+        return {"cleaned": 0, "remaining": len(doc_keys)}
+
+    docs = []
+    for key in doc_keys:
+        doc = await redis_state.get_json(key)
+        if doc:
+            docs.append((key, doc))
+
+    docs.sort(key=lambda x: x[1].get("created_at", "") if x[1].get("created_at") else "")
+    to_delete = docs[:-MAX_DOCUMENTS]
+    cleaned = 0
+
+    for key, doc in to_delete:
+        doc_id = doc["id"]
+        await repository.update_document_status(doc_id, DocumentStatus.deleted)
+        await repository.delete_document_state(doc_id)
+        try:
+            await vector_store.delete_collection(doc_id)
+        except Exception:
+            pass
+        cleaned += 1
+
+    return {"cleaned": cleaned, "remaining": len(docs) - cleaned}

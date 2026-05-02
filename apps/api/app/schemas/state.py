@@ -30,6 +30,7 @@ class DocumentRecord(BaseModel):
     status: DocumentStatus
     session_token_hash: str
     expires_at: datetime
+    created_at: datetime = Field(default_factory=lambda: datetime.now(tz=None))
     ingestion_job_id: Optional[str] = None
     page_count: Optional[int] = Field(default=None, ge=0)
     chunk_count: Optional[int] = Field(default=None, ge=0)

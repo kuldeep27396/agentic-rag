@@ -5,6 +5,12 @@
       "use": "@vercel/python"
     }
   ],
+  "crons": [
+    {
+      "path": "/v1/cron/cleanup",
+      "schedule": "0 */6 * * *"
+    }
+  ],
   "routes": [
     {
       "src": "/(.*)",
@@ -12,4 +18,3 @@
     }
   ]
 }
-

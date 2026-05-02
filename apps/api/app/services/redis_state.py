@@ -49,6 +49,20 @@ class RedisState:
             return
         await self.pipeline([["DEL", *keys]])
 
+    async def keys(self, pattern: str) -> List[str]:
+        settings = get_settings()
+        if not settings.upstash_redis_rest_url or not settings.upstash_redis_rest_token:
+            import fnmatch
+            return [k for k in self._memory if fnmatch.fnmatch(k, pattern)]
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.post(
+                f"{settings.upstash_redis_rest_url}/pipeline",
+                headers={"Authorization": f"Bearer {settings.upstash_redis_rest_token}"},
+                json=[["KEYS", pattern]],
+            )
+            response.raise_for_status()
+            return response.json()[0]["result"] or []
+
     async def pipeline(self, commands: List[List[Any]]) -> List[Dict[str, Any]]:
         settings = get_settings()
         async with httpx.AsyncClient(timeout=10) as client:
