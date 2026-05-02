@@ -30,6 +30,7 @@ import {
 import { MAX_UPLOAD_BYTES } from "@/lib/env";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -121,6 +122,7 @@ export function App() {
   const [isDragging, setIsDragging] = useState(false);
   const [showCitations, setShowCitations] = useState(false);
   const [mobileSidebar, setMobileSidebar] = useState(true);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -214,7 +216,8 @@ export function App() {
         sessionToken: session.token,
       });
       sessionStorage.setItem("agentic-rag-document-id", doc.id);
-      setSession({ ...session, documentId: doc.id });
+      sessionStorage.removeItem("agentic-rag-chat-session-id");
+      setSession({ ...session, documentId: doc.id, chatSessionId: undefined });
       setDocumentRecord(doc);
       if (doc.ingestion_job_id) await enqueueIngestion(doc.ingestion_job_id);
       setFile(null);
@@ -242,6 +245,7 @@ export function App() {
     setError(null);
     setSending(true);
     setAnswerDraft("");
+    setSuggestions([]);
     setMobileSidebar(false);
     const optimisticUser: ChatMessage = {
       id: crypto.randomUUID(),
@@ -252,15 +256,35 @@ export function App() {
       created_at: new Date().toISOString(),
     };
     setMessages((current) => [...current, optimisticUser]);
+    let finalMessage: ChatMessage | null = null;
     try {
       const chatSessionId = await ensureChatSession();
-      const finalMessage = await streamChat({
-        sessionId: chatSessionId,
-        sessionToken: session.token,
-        content,
-        onDelta: (value) => setAnswerDraft(value),
-      });
-      if (finalMessage) setMessages((current) => [...current, finalMessage]);
+      try {
+        finalMessage = await streamChat({
+          sessionId: chatSessionId,
+          sessionToken: session.token,
+          content,
+          onDelta: (value) => setAnswerDraft(value),
+          onSuggestions: (items) => setSuggestions(items),
+        });
+      } catch (streamErr) {
+        const msg = streamErr instanceof Error ? streamErr.message : "";
+        if (msg.includes("Chat session not found") && session.chatSessionId) {
+          sessionStorage.removeItem("agentic-rag-chat-session-id");
+          setSession((prev) => prev ? { ...prev, chatSessionId: undefined } : prev);
+          const retryId = await ensureChatSession();
+          finalMessage = await streamChat({
+            sessionId: retryId,
+            sessionToken: session.token,
+            content,
+            onDelta: (value) => setAnswerDraft(value),
+            onSuggestions: (items) => setSuggestions(items),
+          });
+        } else {
+          throw streamErr;
+        }
+      }
+      if (finalMessage) setMessages((current) => [...current, finalMessage as ChatMessage]);
       setAnswerDraft("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Chat request failed");
@@ -277,7 +301,14 @@ export function App() {
   const isReady = documentRecord?.status === "ready";
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-background">
+    <div className="flex h-dvh flex-col overflow-hidden bg-background">
+      <div className="shrink-0 bg-primary/5 border-b text-center">
+        <a href="/about" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-primary hover:underline">
+          <Sparkles className="h-3 w-3" />
+          Click here for design docs, architecture, tech stack &amp; system internals
+        </a>
+      </div>
+      <div className="flex min-h-0 flex-1 overflow-hidden">
       {/* Sidebar */}
       <aside
         className={cn(
@@ -405,11 +436,11 @@ export function App() {
                   <div className="grid grid-cols-3 gap-2">
                     <div className="rounded-lg bg-muted/50 p-2 text-center">
                       <p className="text-xs text-muted-foreground">Pages</p>
-                      <p className="text-sm font-semibold">{documentRecord.page_count ?? <Skeleton className="mx-auto mt-1 h-4 w-6" />}</p>
+                      <p className="text-sm font-semibold">{documentRecord.page_count ?? <span className="inline-block animate-pulse rounded bg-primary/10 h-4 w-6 mx-auto mt-1" />}</p>
                     </div>
                     <div className="rounded-lg bg-muted/50 p-2 text-center">
                       <p className="text-xs text-muted-foreground">Chunks</p>
-                      <p className="text-sm font-semibold">{documentRecord.chunk_count ?? <Skeleton className="mx-auto mt-1 h-4 w-6" />}</p>
+                      <p className="text-sm font-semibold">{documentRecord.chunk_count ?? <span className="inline-block animate-pulse rounded bg-primary/10 h-4 w-6 mx-auto mt-1" />}</p>
                     </div>
                     <div className="rounded-lg bg-muted/50 p-2 text-center">
                       <p className="text-xs text-muted-foreground">Size</p>
@@ -553,7 +584,11 @@ export function App() {
                           : "rounded-bl-md bg-card"
                       )}
                     >
-                      <div className="whitespace-pre-wrap">{message.content}</div>
+                      {message.role === "user" ? (
+                        <div className="whitespace-pre-wrap">{message.content}</div>
+                      ) : (
+                        <MarkdownRenderer content={message.content} />
+                      )}
                       {message.citations.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1.5 border-t border-border/50 pt-2">
                           {message.citations.map((c, i) => (
@@ -572,11 +607,25 @@ export function App() {
                       <Bot className="h-3.5 w-3.5" />
                     </div>
                     <div className="max-w-[80%] rounded-2xl rounded-bl-md border bg-card px-4 py-2.5 text-sm leading-relaxed">
-                      <div className="whitespace-pre-wrap">{answerDraft}</div>
+                      <MarkdownRenderer content={answerDraft} />
                     </div>
                   </div>
                 )}
                 {sending && !answerDraft && <TypingIndicator />}
+                {!sending && suggestions.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-2 animate-fade-in">
+                    {suggestions.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => handleSuggestion(s)}
+                        className="rounded-full border bg-card px-3.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <ChevronRight className="mr-1 inline h-3 w-3 text-primary" />
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div ref={messagesEndRef} />
               </div>
             )}
@@ -666,6 +715,7 @@ export function App() {
           </ScrollArea>
         </aside>
       )}
+      </div>
     </div>
   );
 }

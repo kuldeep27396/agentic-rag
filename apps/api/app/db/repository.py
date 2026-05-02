@@ -57,7 +57,7 @@ class SessionRepository:
 
     async def require_document_access(self, document_id: str, session_token: str) -> DocumentRecord:
         document = await self.get_document(document_id)
-        if not document or document.status == DocumentStatus.deleted:
+        if not document or document.status in (DocumentStatus.deleted, DocumentStatus.failed):
             raise KeyError("Document not found")
         if not verify_session_token(session_token, document.session_token_hash):
             raise PermissionError("Invalid session token")
@@ -160,7 +160,7 @@ class SessionRepository:
         return [ChatMessage.model_validate(item) for item in data]
 
     async def delete_document_state(self, document_id: str) -> None:
-        await redis_state.delete(_document_key(document_id), _chunks_key(document_id), f"vectors:{document_id}")
+        await redis_state.delete(_chunks_key(document_id), f"vectors:{document_id}")
 
 
 repository = SessionRepository()

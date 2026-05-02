@@ -13,7 +13,7 @@ class PdfRagAgent:
         self.vector_store = vector_store
         self.llm = llm
 
-    async def run(self, document_id: str, filename: str, question: str, *, hybrid: bool = True) -> Tuple[str, List[Citation]]:
+    async def run(self, document_id: str, filename: str, question: str, *, hybrid: bool = True) -> Tuple[str, List[Citation], List[str]]:
         settings = get_settings()
         hits = await self.vector_store.search(document_id, question, settings.retrieval_child_top_k)
         parent_ids: List[str] = []
@@ -27,11 +27,11 @@ class PdfRagAgent:
         contexts: List[str] = []
         citations: List[Citation] = []
         seen_parent_ids: Set[str] = set()
-        for chunk in parents:
+        for idx, chunk in enumerate(parents, 1):
             if chunk.parent_id in seen_parent_ids:
                 continue
             seen_parent_ids.add(chunk.parent_id)
-            contexts.append(f"[{chunk.parent_id}] pages {chunk.page_start}-{chunk.page_end}\n{chunk.text}")
+            contexts.append(f"[{idx}] pages {chunk.page_start}-{chunk.page_end}\n{chunk.text}")
             citations.append(
                 Citation(
                     chunk_id=chunk.id,
@@ -42,8 +42,8 @@ class PdfRagAgent:
                 )
             )
         use_web = hybrid and self._needs_web(question, citations)
-        answer = await self.llm.answer(question, contexts, citations, use_web=use_web)
-        return answer, citations
+        answer, suggestions = await self.llm.answer(question, contexts, citations, use_web=use_web)
+        return answer, citations, suggestions
 
     def _needs_web(self, question: str, citations: List[Citation]) -> bool:
         if not citations:
