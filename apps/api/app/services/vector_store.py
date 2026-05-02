@@ -79,8 +79,13 @@ class VectorStore:
         client = _get_milvus_client()
         if not client or not client.has_collection(_SHARED_COLLECTION):
             return
-        stats = client.get_collection_stats(_SHARED_COLLECTION)
-        if stats.row_count <= self.MAX_DOCUMENTS:
+        try:
+            from pymilvus import Collection
+            col = Collection(_SHARED_COLLECTION, using=client)
+            stats = col.num_entities
+        except Exception:
+            stats = 0
+        if stats <= self.MAX_DOCUMENTS:
             return
         existing = client.query(
             collection_name=_SHARED_COLLECTION,
