@@ -8,10 +8,9 @@ from app.core.config import get_settings
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title="Agentic PDF RAG API", version="0.1.0")
-    origins = ["*"] if settings.environment == "production" else [settings.web_base_url, "http://localhost:3000"]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=origins,
+        allow_origin_regex=r".*",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
