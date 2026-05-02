@@ -1,156 +1,65 @@
-# 🚀 Deployment Guide: Using GitHub Secrets with Your Agentic RAG App
+# Deployment Guide
 
-## Overview
+This repository deploys as two Vercel projects from one monorepo.
 
-Your GitHub secrets (`GROQ_API_KEY`, `SERPER_API_KEY`, `GEMINI_API_KEY`) are stored securely in GitHub, but they need to be properly exposed to your deployed application. Here's how to do it for different deployment platforms.
+## Projects
 
-## 🔑 How GitHub Secrets Work
+- Web project: `apps/web`, framework `nextjs`
+- API project: `apps/api`, framework `fastapi` through Vercel Python runtime
 
-**Important**: GitHub secrets are **only available during GitHub Actions workflows**, not directly in your deployed application. You need to pass them as environment variables to your deployment platform.
+Set the Vercel project root directory separately for each project. Both projects can share the same Git repository and branch.
 
-## Deployment Options
+## Services
 
-### 1. 🌐 Streamlit Cloud (Recommended)
+The simplified session-only stack uses:
 
-**Step 1**: Deploy your app to Streamlit Cloud
-- Go to [share.streamlit.io](https://share.streamlit.io)
-- Connect your GitHub repository
-- Deploy the app
+- Vercel Blob for uploaded PDFs.
+- Upstash Redis for temporary document metadata, chunks, vectors, chat state, and rate limits.
+- Upstash QStash for asynchronous ingestion retries.
+- OpenRouter for chat, optional web search through OpenRouter Firecrawl settings, and future hosted embeddings.
 
-**Step 2**: Configure secrets in Streamlit Cloud
-- Go to your app's settings in Streamlit Cloud
-- Navigate to the "Secrets" section
-- Add your secrets in TOML format:
+No Neon/Postgres, Zilliz/Milvus, Upstash Vector, or direct Firecrawl key is required.
 
-```toml
-GROQ_API_KEY = "your-actual-groq-key-here"
-SERPER_API_KEY = "your-actual-serper-key-here"
-GEMINI_API_KEY = "your-actual-gemini-key-here"
-```
+## Environment Variables
 
-**Step 3**: The app will automatically use `st.secrets` to access these values.
+Configure these variables in GitHub Secrets and in the matching Vercel projects.
 
-### 2. 🔄 GitHub Actions + Any Platform
+Web project:
 
-If you want to use GitHub Actions to deploy to other platforms (Heroku, Railway, etc.):
-
-**Step 1**: Create a deployment workflow (`.github/workflows/deploy.yml`)
-```yaml
-name: Deploy App
-on:
-  push:
-    branches: [ main ]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Deploy to Platform
-      env:
-        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
-        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      run: |
-        # Your deployment commands here
-        # These environment variables will be available during deployment
-```
-
-### 3. 🐳 Docker Deployment
-
-**Step 1**: Create a Dockerfile
-```dockerfile
-FROM python:3.9-slim
-
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
-COPY . .
-
-# Environment variables will be passed at runtime
-CMD ["streamlit", "run", "enhanced_streamlit_app.py"]
-```
-
-**Step 2**: Run with environment variables
 ```bash
-docker run -e GROQ_API_KEY="your-key" -e SERPER_API_KEY="your-key" -e GEMINI_API_KEY="your-key" your-app
+NEXT_PUBLIC_API_BASE_URL=
+BLOB_READ_WRITE_TOKEN=
+QSTASH_TOKEN=
 ```
 
-### 4. ☁️ Other Cloud Platforms
+API project:
 
-For platforms like Heroku, Railway, Render, etc.:
+```bash
+ENVIRONMENT=production
+WEB_BASE_URL=
+API_BASE_URL=
+SESSION_SECRET=
 
-1. Deploy your code to the platform
-2. In the platform's dashboard, add environment variables:
-   - `GROQ_API_KEY` = your actual key
-   - `SERPER_API_KEY` = your actual key  
-   - `GEMINI_API_KEY` = your actual key
+OPENROUTER_API_KEY=
+OPENROUTER_CHAT_MODEL=google/gemma-4-31b-it:free
+OPENROUTER_EMBEDDING_MODEL=openai/text-embedding-3-small
 
-## 🔧 How the Code Works
+BLOB_READ_WRITE_TOKEN=
 
-The updated `get_api_keys()` function now supports multiple deployment scenarios:
+QSTASH_TOKEN=
+QSTASH_CURRENT_SIGNING_KEY=
+QSTASH_NEXT_SIGNING_KEY=
 
-```python
-def get_api_keys():
-    """Get API keys from Streamlit secrets or environment variables"""
-    # Try Streamlit secrets first (for Streamlit Cloud)
-    try:
-        groq_key = st.secrets.get("GROQ_API_KEY", "")
-        serper_key = st.secrets.get("SERPER_API_KEY", "")
-        gemini_key = st.secrets.get("GEMINI_API_KEY", "")
-        
-        if groq_key and serper_key:
-            return groq_key, serper_key, gemini_key
-    except:
-        pass
-    
-    # Fallback to environment variables (for other deployments)
-    groq_key = os.getenv("GROQ_API_KEY", "")
-    serper_key = os.getenv("SERPER_API_KEY", "")
-    gemini_key = os.getenv("GEMINI_API_KEY", "")
-    
-    return groq_key, serper_key, gemini_key
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
 ```
 
-## ✅ Testing Your Deployment
+## OpenRouter Web Search
 
-1. **Local Testing**: Set environment variables locally
-   ```bash
-   export GROQ_API_KEY="your-key"
-   export SERPER_API_KEY="your-key"
-   export GEMINI_API_KEY="your-key"
-   streamlit run enhanced_streamlit_app.py
-   ```
+For Firecrawl through OpenRouter, enable Firecrawl in OpenRouter Web Search or Plugin settings and accept the terms there. The app does not need `FIRECRAWL_API_KEY`.
 
-2. **Deployment Testing**: Check the app's sidebar - it should show:
-   - ✅ "API keys configured from environment" (success)
-   - ❌ "API keys not found in environment variables" (needs configuration)
+## Notes
 
-## 🔒 Security Best Practices
+Vercel serverless request bodies are too small for direct PDF upload through the API, so the browser uploads directly to Vercel Blob through the Next.js client upload route. The API only receives Blob metadata and later downloads the PDF during QStash ingestion.
 
-1. **Never commit API keys** to your repository
-2. **Use different keys** for development and production
-3. **Regularly rotate** your API keys
-4. **Monitor usage** of your API keys
-5. **Set up billing alerts** for your API providers
-
-## 🆘 Troubleshooting
-
-**Problem**: App shows "API keys not found"
-- **Solution**: Verify keys are properly set in your deployment platform's environment variables or secrets
-
-**Problem**: GitHub Actions can't access secrets
-- **Solution**: Ensure secrets are added to your repository settings and properly referenced in workflow
-
-**Problem**: Streamlit Cloud can't find secrets
-- **Solution**: Check that secrets are added in TOML format in Streamlit Cloud's secrets section
-
-## 📞 Need Help?
-
-If you encounter issues:
-1. Check your deployment platform's documentation for environment variables
-2. Verify your GitHub secrets are properly configured
-3. Test locally first with environment variables
-4. Check the app's status display in the sidebar for diagnostic information
+Redis keys use a TTL based on `RETENTION_DAYS`; by default data expires after 30 days. Browser session storage holds the session token, so losing browser session state loses access.
