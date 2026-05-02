@@ -32,7 +32,7 @@ apps/api   — FastAPI backend (Python 3.9–3.12)
 
 No Neon/Postgres, Zilliz/Milvus, Upstash Vector, LangGraph, or direct Firecrawl API key required.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the full request flow and [DEPLOYMENT_KEYS.md](DEPLOYMENT_KEYS.md) for deployment setup.
+See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full request flow and [DEPLOYMENT_KEYS.md](docs/DEPLOYMENT_KEYS.md) for deployment setup.
 
 ## Local Development
 
@@ -56,7 +56,7 @@ Open `http://localhost:3000`. Missing `QSTASH_TOKEN` triggers synchronous ingest
 
 ## Environment
 
-Copy `.env.example` to `.env`. Local dev works without most variables. See [DEPLOYMENT_KEYS.md](DEPLOYMENT_KEYS.md) for production setup.
+Copy `.env.example` to `.env`. Local dev works without most variables. See [DEPLOYMENT_KEYS.md](docs/DEPLOYMENT_KEYS.md) for production setup.
 
 ## Verification
 
