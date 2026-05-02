@@ -8,7 +8,7 @@
   "crons": [
     {
       "path": "/v1/cron/cleanup",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 3 * * *"
     }
   ],
   "routes": [
